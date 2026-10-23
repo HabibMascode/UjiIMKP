@@ -212,6 +212,7 @@ namespace backend.Controllers
             OptionC = request.OptionC.Trim(),
             OptionD = request.OptionD.Trim(),
             CorrectAnswer = request.CorrectAnswer.Trim().ToUpperInvariant(),
+            ImageUrl = request.ImageUrl,
             IsActive = request.IsActive,
             QuestionGroupId = groupId
         };
@@ -243,6 +244,7 @@ namespace backend.Controllers
             {
                 Id = q.Id, QuestionText = q.QuestionText, OptionA = q.OptionA, OptionB = q.OptionB,
                 OptionC = q.OptionC, OptionD = q.OptionD, CorrectAnswer = q.CorrectAnswer,
+                ImageUrl = q.ImageUrl,
                 IsActive = q.IsActive, CreatedAt = q.CreatedAt, QuestionGroupId = q.QuestionGroupId,
                 QuestionGroupName = group.Name
             }).ToList()

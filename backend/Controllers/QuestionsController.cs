@@ -13,16 +13,25 @@ namespace backend.Controllers
     public class QuestionsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly IWebHostEnvironment _env;
 
-        public QuestionsController(ApplicationDbContext context)
+        public QuestionsController(ApplicationDbContext context, IWebHostEnvironment env)
         {
             _context = context;
+            _env = env;
         }
 
         [HttpGet]
-        public IActionResult GetQuestions()
+        public IActionResult GetQuestions([FromQuery] int? groupId)
         {
-            var questions = _context.Questions.Select(q => new QuestionResponse
+            var query = _context.Questions
+                .Include(q => q.QuestionGroup)
+                .AsQueryable();
+
+            if (groupId.HasValue)
+                query = query.Where(q => q.QuestionGroupId == groupId);
+
+            var questions = query.Select(q => new QuestionResponse
             {
                 Id = q.Id,
                 QuestionText = q.QuestionText,
@@ -31,6 +40,7 @@ namespace backend.Controllers
                 OptionC = q.OptionC,
                 OptionD = q.OptionD,
                 CorrectAnswer = q.CorrectAnswer,
+                ImageUrl = q.ImageUrl,
                 IsActive = q.IsActive,
                 CreatedAt = q.CreatedAt,
                 QuestionGroupId = q.QuestionGroupId,
@@ -38,6 +48,30 @@ namespace backend.Controllers
             }).ToList();
 
             return Ok(questions);
+        }
+
+        [HttpGet("{id}")]
+        public IActionResult GetQuestion(int id)
+        {
+            var q = _context.Questions
+                .Include(q => q.QuestionGroup)
+                .FirstOrDefault(q => q.Id == id);
+            if (q == null) return NotFound("Soal tidak ditemukan.");
+            return Ok(new QuestionResponse
+            {
+                Id = q.Id,
+                QuestionText = q.QuestionText,
+                OptionA = q.OptionA,
+                OptionB = q.OptionB,
+                OptionC = q.OptionC,
+                OptionD = q.OptionD,
+                CorrectAnswer = q.CorrectAnswer,
+                ImageUrl = q.ImageUrl,
+                IsActive = q.IsActive,
+                CreatedAt = q.CreatedAt,
+                QuestionGroupId = q.QuestionGroupId,
+                QuestionGroupName = q.QuestionGroup?.Name
+            });
         }
 
         [HttpPost]
@@ -51,6 +85,10 @@ namespace backend.Controllers
                 return BadRequest("Semua field pertanyaan dan pilihan harus diisi.");
             }
 
+            if (request.QuestionGroupId.HasValue &&
+                !_context.QuestionGroups.Any(g => g.Id == request.QuestionGroupId.Value))
+                return BadRequest("Kelompok soal tidak ditemukan.");
+
             var question = new Question
             {
                 QuestionText = request.QuestionText,
@@ -59,18 +97,15 @@ namespace backend.Controllers
                 OptionC = request.OptionC,
                 OptionD = request.OptionD,
                 CorrectAnswer = request.CorrectAnswer,
+                ImageUrl = request.ImageUrl,
                 IsActive = request.IsActive,
                 QuestionGroupId = request.QuestionGroupId
             };
 
-            if (request.QuestionGroupId.HasValue &&
-                !_context.QuestionGroups.Any(g => g.Id == request.QuestionGroupId.Value))
-                return BadRequest("Kelompok soal tidak ditemukan.");
-
             _context.Questions.Add(question);
             _context.SaveChanges();
 
-            return Ok(new { message = "Soal berhasil dibuat." });
+            return Ok(new { message = "Soal berhasil dibuat.", id = question.Id });
         }
 
         [HttpPut("{id}")]
@@ -79,18 +114,19 @@ namespace backend.Controllers
             var question = _context.Questions.Find(id);
             if (question == null) return NotFound("Soal tidak ditemukan.");
 
+            if (request.QuestionGroupId.HasValue &&
+                !_context.QuestionGroups.Any(g => g.Id == request.QuestionGroupId.Value))
+                return BadRequest("Kelompok soal tidak ditemukan.");
+
             question.QuestionText = request.QuestionText;
             question.OptionA = request.OptionA;
             question.OptionB = request.OptionB;
             question.OptionC = request.OptionC;
             question.OptionD = request.OptionD;
             question.CorrectAnswer = request.CorrectAnswer;
+            question.ImageUrl = request.ImageUrl;
             question.IsActive = request.IsActive;
             question.QuestionGroupId = request.QuestionGroupId;
-
-            if (request.QuestionGroupId.HasValue &&
-                !_context.QuestionGroups.Any(g => g.Id == request.QuestionGroupId.Value))
-                return BadRequest("Kelompok soal tidak ditemukan.");
 
             _context.SaveChanges();
 
@@ -109,10 +145,45 @@ namespace backend.Controllers
                 return BadRequest("Soal tidak dapat dihapus karena sudah digunakan dalam ujian.");
             }
 
+            // Delete image file if exists
+            if (!string.IsNullOrEmpty(question.ImageUrl))
+            {
+                var filePath = Path.Combine(_env.WebRootPath ?? "wwwroot", question.ImageUrl.TrimStart('/'));
+                if (System.IO.File.Exists(filePath))
+                    System.IO.File.Delete(filePath);
+            }
+
             _context.Questions.Remove(question);
             _context.SaveChanges();
 
             return Ok(new { message = "Soal berhasil dihapus." });
+        }
+
+        [HttpPost("upload-image")]
+        public async Task<IActionResult> UploadImage(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("File gambar tidak ditemukan.");
+
+            var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+            if (!allowedTypes.Contains(file.ContentType.ToLower()))
+                return BadRequest("Format file tidak didukung. Gunakan JPG, PNG, GIF, atau WebP.");
+
+            if (file.Length > 5 * 1024 * 1024) // 5MB max
+                return BadRequest("Ukuran file maksimal 5MB.");
+
+            var uploadsDir = Path.Combine(_env.WebRootPath ?? "wwwroot", "uploads", "questions");
+            Directory.CreateDirectory(uploadsDir);
+
+            var ext = Path.GetExtension(file.FileName);
+            var fileName = $"{Guid.NewGuid()}{ext}";
+            var fullPath = Path.Combine(uploadsDir, fileName);
+
+            using var stream = new FileStream(fullPath, FileMode.Create);
+            await file.CopyToAsync(stream);
+
+            var url = $"/uploads/questions/{fileName}";
+            return Ok(new { url });
         }
     }
 }

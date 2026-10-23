@@ -29,6 +29,7 @@ namespace backend.Controllers
                 Username = u.Username,
                 Email = u.Email,
                 Role = u.Role,
+                NomorPekerja = u.NomorPekerja,
                 IsActive = u.IsActive,
                 CreatedAt = u.CreatedAt
             }).ToList();
@@ -53,6 +54,7 @@ namespace backend.Controllers
                 Name = request.Name,
                 Username = request.Username,
                 Email = request.Email,
+                NomorPekerja = request.NomorPekerja,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 Role = "Peserta",
                 IsActive = request.IsActive
@@ -79,6 +81,13 @@ namespace backend.Controllers
             user.Name = request.Name;
             user.Username = request.Username;
             user.Email = request.Email;
+            user.NomorPekerja = request.NomorPekerja;
+            
+            if (!string.IsNullOrWhiteSpace(request.Role))
+            {
+                user.Role = request.Role;
+            }
+
             user.IsActive = request.IsActive;
 
             if (!string.IsNullOrWhiteSpace(request.Password))

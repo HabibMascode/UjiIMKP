@@ -63,6 +63,7 @@ namespace backend.Controllers
                 {
                     Id = q.Id,
                     QuestionText = q.QuestionText,
+                    ImageUrl = q.ImageUrl,
                     OptionA = q.OptionA,
                     OptionB = q.OptionB,
                     OptionC = q.OptionC,

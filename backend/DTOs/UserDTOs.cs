@@ -6,6 +6,7 @@ namespace backend.DTOs
         public string Username { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
+        public string? NomorPekerja { get; set; }
         public bool IsActive { get; set; } = true;
     }
 
@@ -15,6 +16,8 @@ namespace backend.DTOs
         public string Username { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string? Password { get; set; }
+        public string? NomorPekerja { get; set; }
+        public string Role { get; set; } = string.Empty;
         public bool IsActive { get; set; }
     }
 
@@ -25,6 +28,7 @@ namespace backend.DTOs
         public string Username { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
+        public string? NomorPekerja { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
     }

@@ -180,3 +180,5 @@ C:\Users\N I T R O  V  15\AppData\Local\Temp\imkp-backend-build\backend.deps.jso
 C:\Users\N I T R O  V  15\AppData\Local\Temp\imkp-backend-build\backend.runtimeconfig.json
 C:\Users\N I T R O  V  15\AppData\Local\Temp\imkp-backend-build\backend.dll
 C:\Users\N I T R O  V  15\AppData\Local\Temp\imkp-backend-build\backend.pdb
+D:\Kerja Praktek\UJI_IMKP\backend\obj\Debug\net10.0\backend.sourcelink.json
+D:\Kerja Praktek\UJI_IMKP\backend\bin\Debug\net10.0\backend.staticwebassets.runtime.json

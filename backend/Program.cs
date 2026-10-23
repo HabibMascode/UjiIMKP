@@ -57,6 +57,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 
+app.UseStaticFiles();
+
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
@@ -103,6 +105,11 @@ static void EnsureQuestionGroupSchema(ApplicationDbContext context)
             );
         END;
 
+        IF COL_LENGTH(N'[Users]', N'NomorPekerja') IS NULL
+        BEGIN
+            ALTER TABLE [Users] ADD [NomorPekerja] nvarchar(max) NULL;
+        END;
+
         IF COL_LENGTH(N'[Questions]', N'QuestionGroupId') IS NULL
         BEGIN
             ALTER TABLE [Questions] ADD [QuestionGroupId] int NULL;
@@ -118,6 +125,10 @@ static void EnsureQuestionGroupSchema(ApplicationDbContext context)
             ADD CONSTRAINT [FK_Questions_QuestionGroups_QuestionGroupId]
                 FOREIGN KEY ([QuestionGroupId]) REFERENCES [QuestionGroups] ([Id])
                 ON DELETE CASCADE;
+        END;
+        IF COL_LENGTH(N'[Questions]', N'ImageUrl') IS NULL
+        BEGIN
+            ALTER TABLE [Questions] ADD [ImageUrl] nvarchar(max) NULL;
         END;
         """);
 }

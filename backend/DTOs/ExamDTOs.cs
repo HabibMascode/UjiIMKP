@@ -4,6 +4,7 @@ namespace backend.DTOs
     {
         public int Id { get; set; }
         public string QuestionText { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
         public string OptionA { get; set; } = string.Empty;
         public string OptionB { get; set; } = string.Empty;
         public string OptionC { get; set; } = string.Empty;

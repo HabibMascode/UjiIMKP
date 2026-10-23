@@ -17,7 +17,7 @@ const Dashboard = () => {
           api.get('/results'),
         ]);
         setStats({
-          totalUsers: usersRes.data.length,
+          totalUsers: usersRes.data.filter(u => u.role === 'Peserta').length,
           totalGroups: Array.isArray(questionsRes.data) ? questionsRes.data.length : (questionsRes.data.groups || []).length,
           totalExams: resultsRes.data.length,
         });

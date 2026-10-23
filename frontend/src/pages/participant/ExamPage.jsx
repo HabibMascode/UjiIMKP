@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import api, { getImageUrl } from '../../services/api';
 import Icon from '../../components/Icon';
 
 const ExamPage = () => {
@@ -11,6 +11,7 @@ const ExamPage = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [zoomedImage, setZoomedImage] = useState(null);
 
   useEffect(() => {
     if (!examData) {
@@ -53,6 +54,69 @@ const ExamPage = () => {
 
   return (
     <div>
+      {/* Zoom Modal Gambar Soal */}
+      {zoomedImage && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1200,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.5rem',
+          }}
+          onClick={() => setZoomedImage(null)}
+        >
+          <div
+            style={{
+              position: 'relative',
+              backgroundColor: '#fff',
+              borderRadius: '12px',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              padding: '1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '0.75rem',
+              }}
+            >
+              <h4 style={{ margin: 0 }}>Gambar Soal #{currentIndex + 1}</h4>
+              <button
+                type="button"
+                className="btn"
+                style={{ padding: '0.25rem 0.6rem', backgroundColor: '#e9ecef', color: '#495057' }}
+                onClick={() => setZoomedImage(null)}
+              >
+                ✕ Tutup
+              </button>
+            </div>
+            <img
+              src={zoomedImage}
+              alt={`Zoom Soal ${currentIndex + 1}`}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '75vh',
+                objectFit: 'contain',
+                borderRadius: '8px',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Progress Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <h3 style={{ margin: 0 }}>Ujian IMKP</h3>
@@ -74,10 +138,51 @@ const ExamPage = () => {
       {/* Question Card */}
       <div className="card">
         <div className="card-body" style={{ padding: '2rem' }}>
-          <h4 style={{ marginBottom: '1.5rem', lineHeight: '1.6' }}>
+          <h4 style={{ marginBottom: currentQuestion.imageUrl ? '1rem' : '1.5rem', lineHeight: '1.6' }}>
             <span style={{ color: 'var(--primary-color)', marginRight: '8px' }}>#{currentIndex + 1}</span>
             {currentQuestion.questionText}
           </h4>
+
+          {/* Gambar Soal (Jika Ada) */}
+          {currentQuestion.imageUrl && (
+            <div
+              style={{
+                marginBottom: '1.5rem',
+                textAlign: 'center',
+                backgroundColor: '#f8f9fa',
+                padding: '0.75rem',
+                borderRadius: '8px',
+                border: '1px solid #e9ecef',
+              }}
+            >
+              <img
+                src={getImageUrl(currentQuestion.imageUrl)}
+                alt={`Gambar Soal ${currentIndex + 1}`}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '340px',
+                  borderRadius: '6px',
+                  objectFit: 'contain',
+                  cursor: 'zoom-in',
+                  display: 'inline-block',
+                }}
+                onClick={() => setZoomedImage(getImageUrl(currentQuestion.imageUrl))}
+                title="Klik untuk memperbesar gambar"
+              />
+              <div style={{ marginTop: '0.35rem' }}>
+                <small
+                  style={{
+                    color: 'var(--primary-color)',
+                    cursor: 'pointer',
+                    fontWeight: 500,
+                  }}
+                  onClick={() => setZoomedImage(getImageUrl(currentQuestion.imageUrl))}
+                >
+                  🔍 Klik gambar untuk memperbesar
+                </small>
+              </div>
+            </div>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {['A', 'B', 'C', 'D'].map((opt) => {

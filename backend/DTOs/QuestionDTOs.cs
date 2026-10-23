@@ -8,6 +8,7 @@ namespace backend.DTOs
         public string OptionC { get; set; } = string.Empty;
         public string OptionD { get; set; } = string.Empty;
         public string CorrectAnswer { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
         public bool IsActive { get; set; } = true;
         public int? QuestionGroupId { get; set; }
     }
