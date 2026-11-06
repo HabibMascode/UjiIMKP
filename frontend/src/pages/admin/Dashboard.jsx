@@ -11,7 +11,6 @@ const Dashboard = () => {
     passRate: 100,
   });
   const [recentExams, setRecentExams] = useState([]);
-  const [questionGroups, setQuestionGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const name = localStorage.getItem('name') || 'Admin';
   const navigate = useNavigate();
@@ -30,6 +29,8 @@ const Dashboard = () => {
         const groupsData = groupsRes.status === 'fulfilled' ? groupsRes.value.data : [];
         const groups = Array.isArray(groupsData) ? groupsData : (groupsData.groups || groupsData.items || []);
         const results = resultsRes.status === 'fulfilled' ? resultsRes.value.data : [];
+        const usersById = new Map(users.map((user) => [user.id, user]));
+        const usersByName = new Map(users.map((user) => [user.name?.trim().toLowerCase(), user]));
 
         const participants = users.filter((u) => u.role === 'Peserta');
         const passedCount = results.filter((r) => r.score >= 70).length;
@@ -44,26 +45,25 @@ const Dashboard = () => {
 
         // Set recent exam activity
         if (results && results.length > 0) {
-          setRecentExams(results.slice(0, 5));
+          setRecentExams(results.slice(0, 5).map((result) => {
+            const user = usersById.get(result.userId) ||
+              usersByName.get(result.participantName?.trim().toLowerCase());
+
+            return {
+              ...result,
+              nomorPekerja: result.nomorPekerja || user?.nomorPekerja,
+            };
+          }));
         } else {
           // Default mock sample rows if DB is fresh
           setRecentExams([
-            { id: 1, participantName: 'Rahman Nur Zaman', nomorPekerja: '9028114', division: 'HSE Operasional Hulu', module: 'IMKP APD & Prosedur Tanggap Darurat', duration: '42 Menit', score: 94, isPassed: true },
-            { id: 2, participantName: 'Dono Patrio', nomorPekerja: '9028118', division: 'HSE RU-IV Cilacap', module: 'Standar Keselamatan Kerja Kilang', duration: '38 Menit', score: 88, isPassed: true },
-            { id: 3, participantName: 'Ahmad Syahrir', nomorPekerja: '9028122', division: 'Distribusi Logistik', module: 'Penanganan Bahan Kimia & Hazmat', duration: '45 Menit', score: 91, isPassed: true },
-            { id: 4, participantName: 'Budi Santoso', nomorPekerja: '9028130', division: 'Fasilitas Off-shore', module: 'Prosedur Darurat Rig Laut Lepas', duration: '50 Menit', score: 86, isPassed: true },
+            { id: 1, participantName: 'Rahman Nur Zaman', nomorPekerja: '9028114', module: 'IMKP APD & Prosedur Tanggap Darurat', duration: '42 Menit', score: 94, isPassed: true },
+            { id: 2, participantName: 'Dono Patrio', nomorPekerja: '9028118', module: 'Standar Keselamatan Kerja Kilang', duration: '38 Menit', score: 88, isPassed: true },
+            { id: 3, participantName: 'Ahmad Syahrir', nomorPekerja: '9028122', module: 'Penanganan Bahan Kimia & Hazmat', duration: '45 Menit', score: 91, isPassed: true },
+            { id: 4, participantName: 'Budi Santoso', nomorPekerja: '9028130', module: 'Prosedur Darurat Rig Laut Lepas', duration: '50 Menit', score: 86, isPassed: true },
           ]);
         }
 
-        if (groups && groups.length > 0) {
-          setQuestionGroups(groups.slice(0, 4));
-        } else {
-          setQuestionGroups([
-            { id: 1, name: 'Keselamatan Kerja HSE Level 1', questionCount: 50, duration: '60 Menit', isActive: true },
-            { id: 2, name: 'Prosedur APD & Bahaya Api', questionCount: 40, duration: '45 Menit', isActive: true },
-            { id: 3, name: 'Tanggap Bencana & Evakuasi Kilang', questionCount: 35, duration: '45 Menit', isActive: true },
-          ]);
-        }
       } catch (err) {
         console.error('Gagal memuat dashboard:', err);
       } finally {
@@ -190,9 +190,7 @@ const Dashboard = () => {
       {/* ── Two Column Bottom Section ── */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 360px',
-        gap: '1.5rem',
-        alignItems: 'start'
+        gridTemplateColumns: '1fr'
       }}>
         {/* Left Column: Aktivitas Ujian Terkini */}
         <div className="modern-table-card">
@@ -226,7 +224,6 @@ const Dashboard = () => {
               <thead>
                 <tr>
                   <th>NAMA PESERTA</th>
-                  <th>GRUP / MODUL UJIAN</th>
                   <th>SKOR AKHIR</th>
                   <th>STATUS KELULUSAN</th>
                 </tr>
@@ -234,10 +231,8 @@ const Dashboard = () => {
               <tbody>
                 {recentExams.map((exam, idx) => {
                   const pName = exam.participantName || `Peserta ${idx + 1}`;
-                  const nip = exam.nomorPekerja ? `NIP: ${exam.nomorPekerja}` : 'NIP: 9028114';
-                  const div = exam.division || 'Operasional Kilang IMKP';
+                  const nomorPekerja = exam.nomorPekerja ? `NP: ${exam.nomorPekerja}` : 'NP: -';
                   const isPassed = exam.score >= 70;
-                  const moduleName = exam.module || 'IMKP APD & Prosedur Tanggap Darurat';
 
                   return (
                     <tr key={exam.id || idx}>
@@ -251,13 +246,10 @@ const Dashboard = () => {
                               {pName}
                             </div>
                             <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
-                              {nip} - {div}
+                              {nomorPekerja}
                             </div>
                           </div>
                         </div>
-                      </td>
-                      <td style={{ fontSize: '0.84rem', color: '#334155', maxWidth: '240px' }}>
-                        {moduleName}
                       </td>
                       <td>
                         <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0F172A' }}>
@@ -274,78 +266,6 @@ const Dashboard = () => {
                 })}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        {/* Right Column: Grup Soal Terverifikasi */}
-        <div className="card" style={{ padding: 0 }}>
-          <div style={{
-            padding: '1.25rem 1.4rem',
-            borderBottom: '1px solid #F1F5F9',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
-            <div>
-              <h3 style={{ fontSize: '1.02rem', margin: '0 0 0.2rem', color: '#0F172A' }}>
-                Grup Soal Terverifikasi
-              </h3>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B' }}>
-                {stats.totalGroups} Grup Soal aktif siap digunakan
-              </p>
-            </div>
-            <span className="badge badge-blue">
-              {stats.totalGroups} Bank
-            </span>
-          </div>
-
-          <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            {questionGroups.map((g, idx) => (
-              <div
-                key={g.id || idx}
-                style={{
-                  padding: '0.9rem 1rem',
-                  borderRadius: '12px',
-                  backgroundColor: '#F8FAFC',
-                  border: '1px solid #E2E8F0',
-                  transition: 'all 0.15s ease',
-                  cursor: 'pointer'
-                }}
-                onClick={() => navigate(`/admin/questions/${g.id || ''}`)}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#0066CB'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#E2E8F0'}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                  <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0F172A' }}>
-                    {idx + 1}. {g.name || g.title || 'Modul Keselamatan Kerja'}
-                  </span>
-                  <span className="badge badge-green" style={{ fontSize: '0.7rem' }}>
-                    Aktif
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748B' }}>
-                  <span>{g.questionCount ?? 40} Pertanyaan Pilihan Ganda</span>
-                  <span>Durasi: {g.duration || '45 Menit'}</span>
-                </div>
-              </div>
-            ))}
-
-            <button
-              className="btn btn-outline"
-              style={{
-                width: '100%',
-                marginTop: '0.5rem',
-                borderStyle: 'dashed',
-                borderWidth: '1.5px',
-                color: '#0066CB',
-                borderColor: '#bfdbfe',
-                padding: '0.75rem'
-              }}
-              onClick={() => navigate('/admin/questions')}
-            >
-              <Icon name="plus" size={15} />
-              Tambah Grup Soal Baru
-            </button>
           </div>
         </div>
       </div>

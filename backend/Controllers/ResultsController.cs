@@ -27,7 +27,9 @@ namespace backend.Controllers
                 .Select(e => new ResultListResponse
                 {
                     ExamId = e.Id,
+                    UserId = e.UserId,
                     ParticipantName = e.User!.Name,
+                    NomorPekerja = e.User.NomorPekerja,
                     TotalQuestions = e.TotalQuestions,
                     CorrectAnswers = e.CorrectAnswers,
                     WrongAnswers = e.WrongAnswers,

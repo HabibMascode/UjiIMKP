@@ -3,7 +3,9 @@ namespace backend.DTOs
     public class ResultListResponse
     {
         public int ExamId { get; set; }
+        public int UserId { get; set; }
         public string ParticipantName { get; set; } = string.Empty;
+        public string? NomorPekerja { get; set; }
         public int TotalQuestions { get; set; }
         public int CorrectAnswers { get; set; }
         public int WrongAnswers { get; set; }

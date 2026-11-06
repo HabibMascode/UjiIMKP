@@ -406,13 +406,6 @@ const UserManagement = () => {
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
                           <button
-                            className="btn btn-outline btn-sm"
-                            style={{ padding: '0.3rem 0.65rem', fontSize: '0.8rem' }}
-                            onClick={() => handleEdit(user)}
-                          >
-                            Lihat
-                          </button>
-                          <button
                             className="btn btn-icon btn-outline"
                             style={{ width: '30px', height: '30px' }}
                             onClick={() => handleEdit(user)}
