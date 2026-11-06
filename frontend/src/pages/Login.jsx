@@ -42,8 +42,47 @@ const Login = () => {
       <div className="login-form-container">
         <div className="login-card">
           <div className="login-header">
-            <div className="login-logo">
-              <img src="/Pertamina_Logo.svg" alt="Pertamina" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '1.75rem' }}>
+              <div style={{
+                width: '54px',
+                height: '54px',
+                backgroundColor: '#ffffff',
+                borderRadius: '16px',
+                padding: '5px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 14px rgba(0, 102, 203, 0.12)',
+                border: '1px solid #E2E8F0',
+                flexShrink: 0
+              }}>
+                <img
+                  src="/pertamina_logo_stacked.jpg"
+                  alt="Pertamina"
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{
+                  color: '#0066CB',
+                  fontWeight: 900,
+                  fontSize: '1.22rem',
+                  letterSpacing: '0.04em',
+                  lineHeight: 1.15,
+                  fontFamily: "'Plus Jakarta Sans', sans-serif"
+                }}>
+                  PERTAMINA
+                </span>
+                <span style={{
+                  color: '#64748B',
+                  fontSize: '0.88rem',
+                  fontWeight: 600,
+                  lineHeight: 1.2,
+                  marginTop: '2px'
+                }}>
+                  Portal Ujian IMKP
+                </span>
+              </div>
             </div>
             <h2 className="login-title">Selamat Datang</h2>
             <p className="login-subtitle">Silakan masuk dengan akun Anda</p>

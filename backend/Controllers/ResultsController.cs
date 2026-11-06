@@ -55,6 +55,11 @@ namespace backend.Controllers
                 ExamId = exam.Id,
                 ParticipantName = exam.User?.Name ?? "Unknown",
                 Score = exam.Score,
+                TotalQuestions = exam.TotalQuestions,
+                CorrectAnswers = exam.CorrectAnswers,
+                WrongAnswers = exam.WrongAnswers,
+                StartedAt = exam.StartedAt,
+                FinishedAt = exam.FinishedAt,
                 Details = exam.ExamAnswers?.Select(ea => new ResultQuestionDetailDto
                 {
                     QuestionText = ea.Question?.QuestionText ?? "",
@@ -65,6 +70,27 @@ namespace backend.Controllers
             };
 
             return Ok(response);
+        }
+
+        [HttpDelete("{id}")]
+        public IActionResult DeleteResult(int id)
+        {
+            var exam = _context.Exams
+                .Include(e => e.ExamAnswers)
+                .FirstOrDefault(e => e.Id == id);
+
+            if (exam == null) return NotFound("Hasil ujian tidak ditemukan.");
+
+            // Remove related exam answers first
+            if (exam.ExamAnswers != null && exam.ExamAnswers.Any())
+            {
+                _context.ExamAnswers.RemoveRange(exam.ExamAnswers);
+            }
+
+            _context.Exams.Remove(exam);
+            _context.SaveChanges();
+
+            return Ok(new { message = "Hasil ujian berhasil dihapus." });
         }
     }
 }

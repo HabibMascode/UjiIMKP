@@ -16,6 +16,11 @@ namespace backend.DTOs
         public int ExamId { get; set; }
         public string ParticipantName { get; set; } = string.Empty;
         public double Score { get; set; }
+        public int TotalQuestions { get; set; }
+        public int CorrectAnswers { get; set; }
+        public int WrongAnswers { get; set; }
+        public DateTime StartedAt { get; set; }
+        public DateTime? FinishedAt { get; set; }
         public List<ResultQuestionDetailDto> Details { get; set; } = new List<ResultQuestionDetailDto>();
     }
 

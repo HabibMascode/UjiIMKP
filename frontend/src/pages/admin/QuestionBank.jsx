@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import questionGroupService from '../../services/questionGroupService';
 import Icon from '../../components/Icon';
 
-const getError = (error, fallback) => error.response?.data?.message || error.response?.data || fallback;
-const getGroups = (data) => Array.isArray(data) ? data : data.groups || data.items || [];
+const getError = (error, fallback) =>
+  error.response?.data?.message || error.response?.data || fallback;
+const getGroups = (data) =>
+  Array.isArray(data) ? data : data.groups || data.items || [];
 
-/* ── Modal Buat Grup ── */
+/* ── Modern Modal Buat Grup ── */
 const CreateGroupModal = ({ onClose, onCreated }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -14,15 +16,24 @@ const CreateGroupModal = ({ onClose, onCreated }) => {
   const [saving, setSaving] = useState(false);
   const nameRef = useRef(null);
 
-  useEffect(() => { nameRef.current?.focus(); }, []);
+  useEffect(() => {
+    nameRef.current?.focus();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim()) { setError('Nama grup harus diisi.'); return; }
+    if (!name.trim()) {
+      setError('Nama grup harus diisi.');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
-      const { data } = await questionGroupService.create({ name: name.trim(), description: description.trim(), isActive: true });
+      const { data } = await questionGroupService.create({
+        name: name.trim(),
+        description: description.trim(),
+        isActive: true,
+      });
       onCreated(data);
     } catch (err) {
       setError(getError(err, 'Gagal membuat grup soal.'));
@@ -31,46 +42,73 @@ const CreateGroupModal = ({ onClose, onCreated }) => {
   };
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 1000,
-      backgroundColor: 'rgba(0,0,0,0.45)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{
-        background: 'var(--bg-card, #fff)', borderRadius: '12px',
-        padding: '1.75rem', width: '100%', maxWidth: '440px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-      }}>
-        <h3 style={{ margin: '0 0 1.25rem' }}>Buat Grup Soal</h3>
-        {error && <div className="alert-error" style={{ marginBottom: '1rem' }}>{error}</div>}
-        <form onSubmit={handleSubmit}>
+    <div
+      className="modal-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="modal-dialog">
+        <div style={{
+          padding: '1.25rem 1.5rem',
+          borderBottom: '1px solid #E2E8F0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#0F172A' }}>
+            Buat Grup Soal Baru
+          </h3>
+          <button
+            type="button"
+            className="btn btn-icon btn-outline"
+            style={{ width: '30px', height: '30px' }}
+            onClick={onClose}
+          >
+            <Icon name="x" size={16} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ padding: '1.5rem' }}>
+          {error && <div className="alert-error">{error}</div>}
+
           <div className="form-group">
-            <label className="form-label">Nama Grup *</label>
+            <label className="form-label">Nama Grup / Modul *</label>
             <input
               ref={nameRef}
               className="form-control"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Contoh: Matematika Dasar"
+              placeholder="Contoh: Keselamatan Kerja HSE Level 1"
               required
             />
           </div>
+
           <div className="form-group">
-            <label className="form-label">Deskripsi</label>
+            <label className="form-label">Deskripsi Modul</label>
             <textarea
               className="form-control"
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Opsional..."
+              placeholder="Jelaskan cakupan kompetensi dan materi modul..."
             />
           </div>
-          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Menyimpan...' : 'Buat Grup'}
-            </button>
-            <button type="button" className="btn" style={{ backgroundColor: '#e9ecef', color: '#495057' }} onClick={onClose}>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={onClose}
+            >
               Batal
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={saving}
+            >
+              {saving ? 'Menyimpan...' : 'Buat Grup'}
             </button>
           </div>
         </form>
@@ -85,6 +123,7 @@ const QuestionBank = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
@@ -109,7 +148,9 @@ const QuestionBank = () => {
   const handleStatus = async (group) => {
     try {
       await questionGroupService.updateStatus(group.id, !group.isActive);
-      setGroups((cur) => cur.map((g) => g.id === group.id ? { ...g, isActive: !group.isActive } : g));
+      setGroups((cur) =>
+        cur.map((g) => (g.id === group.id ? { ...g, isActive: !group.isActive } : g))
+      );
     } catch (err) {
       alert(getError(err, 'Gagal mengubah status grup.'));
     }
@@ -117,7 +158,7 @@ const QuestionBank = () => {
 
   const handleDelete = async (group) => {
     const groupName = group.name || group.title;
-    if (!window.confirm(`Hapus grup "${groupName}"? Semua soal di dalamnya juga akan dihapus.`)) return;
+    if (!window.confirm(`Hapus grup "${groupName}"? Semua butir soal di dalamnya juga akan terhapus.`)) return;
     try {
       await questionGroupService.delete(group.id);
       setGroups((cur) => cur.filter((g) => g.id !== group.id));
@@ -135,123 +176,246 @@ const QuestionBank = () => {
       const parsed = JSON.parse(content);
       await questionGroupService.importJson(parsed);
       await fetchGroups();
-      alert('Grup soal berhasil diimpor.');
+      alert('Grup soal dan bank soal berhasil diimpor.');
     } catch (err) {
-      alert(err instanceof SyntaxError ? 'File JSON tidak valid.' : getError(err, 'Gagal mengimpor grup soal.'));
+      alert(
+        err instanceof SyntaxError
+          ? 'File JSON tidak valid.'
+          : getError(err, 'Gagal mengimpor grup soal.')
+      );
     }
   };
 
-  const handleGroupCreated = (newGroup) => {
-    setShowModal(false);
-    // Langsung navigasi ke detail grup yang baru dibuat
-    navigate(`/admin/questions/${newGroup.id}`);
-  };
+  const filteredGroups = groups.filter((g) => {
+    const term = searchQuery.toLowerCase();
+    return (
+      (g.name || g.title || '').toLowerCase().includes(term) ||
+      (g.description || '').toLowerCase().includes(term)
+    );
+  });
 
   return (
-    <div>
+    <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
       {showModal && (
         <CreateGroupModal
           onClose={() => setShowModal(false)}
-          onCreated={handleGroupCreated}
+          onCreated={(newGroup) => {
+            setShowModal(false);
+            navigate(`/admin/questions/${newGroup.id}`);
+          }}
         />
       )}
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      {/* ── Page Header ── */}
+      <div className="page-header-wrapper">
         <div>
-          <h2 style={{ marginBottom: '0.25rem' }}>Bank Soal</h2>
-          <p style={{ color: 'var(--text-muted)', margin: 0 }}>Kelola grup soal dan pertanyaan yang digunakan dalam ujian.</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
+            <h1 className="page-title" style={{ margin: 0 }}>Bank Soal</h1>
+            <span className="badge badge-blue">
+              Total {groups.length} Grup
+            </span>
+          </div>
+          <p className="page-subtitle">
+            Kelola grup soal evaluasi, modul uji, dan butir pertanyaan kompetensi IMKP.
+          </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <input ref={fileInputRef} type="file" accept=".json,application/json" onChange={handleImport} hidden />
-          <button className="btn" style={{ backgroundColor: '#e9ecef', color: '#495057' }} onClick={() => fileInputRef.current?.click()}>
+
+        <div className="page-actions">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={handleImport}
+            hidden
+          />
+          <button
+            className="btn btn-outline"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Icon name="download" size={16} />
             Impor JSON
           </button>
-          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-            <Icon name="plus" size={16} /> Buat Grup
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowModal(true)}
+          >
+            <Icon name="plus" size={16} />
+            Buat Grup
           </button>
         </div>
       </div>
 
       {error && <div className="alert-error">{error}</div>}
 
-      <div className="card">
-        <div className="card-header">
-          <h4 style={{ margin: 0 }}>Daftar Grup Soal ({groups.length})</h4>
+      {/* ── Search Bar ── */}
+      <div className="filter-card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ position: 'relative', flex: 1 }}>
+          <span style={{
+            position: 'absolute',
+            left: '0.85rem',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: '#94A3B8',
+            display: 'flex'
+          }}>
+            <Icon name="search" size={16} />
+          </span>
+          <input
+            type="text"
+            className="form-control"
+            style={{ paddingLeft: '2.4rem' }}
+            placeholder="Cari nama grup atau materi modul..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
-        <div className="card-body">
-          {loading ? (
-            <p>Loading data...</p>
-          ) : groups.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📂</div>
-              <p style={{ margin: 0 }}>Belum ada grup soal. Klik "Buat Grup" untuk memulai.</p>
-            </div>
-          ) : (
-            <div className="table-responsive">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Nama Grup</th>
-                    <th>Deskripsi</th>
-                    <th>Jumlah Soal</th>
-                    <th>Status</th>
-                    <th>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {groups.map((group) => (
+        <button className="btn btn-icon btn-outline" onClick={fetchGroups} title="Segarkan Data">
+          <Icon name="refresh" size={16} />
+        </button>
+      </div>
+
+      {/* ── Table Card: Daftar Grup Soal ── */}
+      <div className="modern-table-card">
+        <div style={{
+          padding: '1.25rem 1.4rem',
+          borderBottom: '1px solid #F1F5F9',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <h3 style={{ fontSize: '1.05rem', margin: 0, color: '#0F172A' }}>
+            Daftar Modul & Grup Soal
+          </h3>
+          <span className="badge badge-gray">{filteredGroups.length} grup</span>
+        </div>
+
+        <div className="table-responsive">
+          <table className="modern-table">
+            <thead>
+              <tr>
+                <th>NAMA GRUP MODUL</th>
+                <th>DESKRIPSI</th>
+                <th style={{ textAlign: 'center' }}>JUMLAH SOAL</th>
+                <th>STATUS</th>
+                <th style={{ textAlign: 'right' }}>AKSI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '3.5rem', color: '#64748B' }}>
+                    Memuat daftar grup soal...
+                  </td>
+                </tr>
+              ) : filteredGroups.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '3.5rem', color: '#64748B' }}>
+                    <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📂</div>
+                    <p style={{ margin: 0, fontWeight: 500 }}>Belum ada grup soal. Klik "Buat Grup" untuk memulai.</p>
+                  </td>
+                </tr>
+              ) : (
+                filteredGroups.map((group, idx) => {
+                  const qCount = group.questionCount ?? group.questions?.length ?? 0;
+                  return (
                     <tr key={group.id} style={{ cursor: 'pointer' }}>
+                      <td onClick={() => navigate(`/admin/questions/${group.id}`)}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div style={{
+                            width: '34px',
+                            height: '34px',
+                            borderRadius: '10px',
+                            backgroundColor: '#EEF6FF',
+                            color: '#0066CB',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            <Icon name="fileText" size={17} />
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, color: '#0066CB', fontSize: '0.92rem' }}>
+                              {group.name || group.title}
+                            </div>
+                            <div style={{ fontSize: '0.74rem', color: '#64748B' }}>
+                              ID Modul: #{group.id}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
                       <td
                         onClick={() => navigate(`/admin/questions/${group.id}`)}
-                        style={{ fontWeight: 600, color: 'var(--primary, #4a90e2)' }}
+                        style={{ maxWidth: '340px', color: '#475569', fontSize: '0.86rem' }}
                       >
-                        {group.name || group.title}
+                        {group.description || <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>Tidak ada deskripsi</span>}
                       </td>
-                      <td style={{ maxWidth: '300px', color: 'var(--text-muted)' }}>
-                        {group.description || '-'}
-                      </td>
-                      <td onClick={() => navigate(`/admin/questions/${group.id}`)}>
-                        {group.questionCount ?? group.questions?.length ?? 0}
+                      <td
+                        onClick={() => navigate(`/admin/questions/${group.id}`)}
+                        style={{ textAlign: 'center' }}
+                      >
+                        <span className="badge badge-blue">
+                          {qCount} Butir
+                        </span>
                       </td>
                       <td>
                         <button
                           type="button"
-                          onClick={() => handleStatus(group)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStatus(group);
+                          }}
                           style={{
-                            padding: '0.25rem 0.5rem', borderRadius: '4px', border: 'none',
-                            cursor: 'pointer', fontSize: '0.85rem',
-                            backgroundColor: group.isActive ? 'rgba(133,194,38,0.2)' : 'rgba(218,37,28,0.2)',
-                            color: group.isActive ? '#85C226' : '#DA251C',
+                            border: 'none',
+                            background: 'none',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            fontWeight: 600,
+                            fontSize: '0.82rem',
+                            color: group.isActive ? '#059669' : '#DC2626'
                           }}
                         >
+                          <span style={{
+                            width: '7px',
+                            height: '7px',
+                            borderRadius: '50%',
+                            backgroundColor: group.isActive ? '#10B981' : '#EF4444'
+                          }} />
                           {group.isActive ? 'Aktif' : 'Nonaktif'}
                         </button>
                       </td>
-                      <td style={{ display: 'flex', gap: '0.4rem' }}>
-                        <button
-                          className="btn"
-                          style={{ padding: '0.25rem 0.6rem', fontSize: '0.85rem', backgroundColor: '#e9ecef', color: '#495057' }}
-                          onClick={() => navigate(`/admin/questions/${group.id}`)}
-                        >
-                          Lihat
-                        </button>
-                        <button
-                          className="btn btn-danger"
-                          aria-label={`Hapus ${group.name || group.title}`}
-                          title="Hapus"
-                          style={{ padding: '0.35rem' }}
-                          onClick={() => handleDelete(group)}
-                        >
-                          <Icon name="trash" size={16} />
-                        </button>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/admin/questions/${group.id}`);
+                            }}
+                          >
+                            Kelola
+                          </button>
+                          <button
+                            className="btn btn-icon btn-outline-danger"
+                            style={{ width: '30px', height: '30px' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(group);
+                            }}
+                            title="Hapus Grup"
+                          >
+                            <Icon name="trash" size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

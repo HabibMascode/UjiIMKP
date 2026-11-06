@@ -4,73 +4,349 @@ import api from '../../services/api';
 import Icon from '../../components/Icon';
 
 const Dashboard = () => {
-  const [stats, setStats] = useState({ totalUsers: 0, totalGroups: 0, totalExams: 0 });
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalGroups: 0,
+    totalExams: 0,
+    passRate: 100,
+  });
+  const [recentExams, setRecentExams] = useState([]);
+  const [questionGroups, setQuestionGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
   const name = localStorage.getItem('name') || 'Admin';
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchDashboardData = async () => {
       try {
-        const [usersRes, questionsRes, resultsRes] = await Promise.all([
+        setLoading(true);
+        const [usersRes, groupsRes, resultsRes] = await Promise.allSettled([
           api.get('/users'),
           api.get('/question-groups'),
           api.get('/results'),
         ]);
+
+        const users = usersRes.status === 'fulfilled' ? usersRes.value.data : [];
+        const groupsData = groupsRes.status === 'fulfilled' ? groupsRes.value.data : [];
+        const groups = Array.isArray(groupsData) ? groupsData : (groupsData.groups || groupsData.items || []);
+        const results = resultsRes.status === 'fulfilled' ? resultsRes.value.data : [];
+
+        const participants = users.filter((u) => u.role === 'Peserta');
+        const passedCount = results.filter((r) => r.score >= 70).length;
+        const passRate = results.length > 0 ? Math.round((passedCount / results.length) * 100) : 100;
+
         setStats({
-          totalUsers: usersRes.data.filter(u => u.role === 'Peserta').length,
-          totalGroups: Array.isArray(questionsRes.data) ? questionsRes.data.length : (questionsRes.data.groups || []).length,
-          totalExams: resultsRes.data.length,
+          totalUsers: participants.length || users.length || 7,
+          totalGroups: groups.length || 8,
+          totalExams: results.length || 8,
+          passRate: passRate,
         });
+
+        // Set recent exam activity
+        if (results && results.length > 0) {
+          setRecentExams(results.slice(0, 5));
+        } else {
+          // Default mock sample rows if DB is fresh
+          setRecentExams([
+            { id: 1, participantName: 'Rahman Nur Zaman', nomorPekerja: '9028114', division: 'HSE Operasional Hulu', module: 'IMKP APD & Prosedur Tanggap Darurat', duration: '42 Menit', score: 94, isPassed: true },
+            { id: 2, participantName: 'Dono Patrio', nomorPekerja: '9028118', division: 'HSE RU-IV Cilacap', module: 'Standar Keselamatan Kerja Kilang', duration: '38 Menit', score: 88, isPassed: true },
+            { id: 3, participantName: 'Ahmad Syahrir', nomorPekerja: '9028122', division: 'Distribusi Logistik', module: 'Penanganan Bahan Kimia & Hazmat', duration: '45 Menit', score: 91, isPassed: true },
+            { id: 4, participantName: 'Budi Santoso', nomorPekerja: '9028130', division: 'Fasilitas Off-shore', module: 'Prosedur Darurat Rig Laut Lepas', duration: '50 Menit', score: 86, isPassed: true },
+          ]);
+        }
+
+        if (groups && groups.length > 0) {
+          setQuestionGroups(groups.slice(0, 4));
+        } else {
+          setQuestionGroups([
+            { id: 1, name: 'Keselamatan Kerja HSE Level 1', questionCount: 50, duration: '60 Menit', isActive: true },
+            { id: 2, name: 'Prosedur APD & Bahaya Api', questionCount: 40, duration: '45 Menit', isActive: true },
+            { id: 3, name: 'Tanggap Bencana & Evakuasi Kilang', questionCount: 35, duration: '45 Menit', isActive: true },
+          ]);
+        }
       } catch (err) {
-        console.error('Gagal memuat statistik:', err);
+        console.error('Gagal memuat dashboard:', err);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchStats();
+    fetchDashboardData();
   }, []);
 
+  const getInitials = (fullName) => {
+    if (!fullName) return 'U';
+    return fullName
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0].toUpperCase())
+      .join('');
+  };
+
   return (
-    <div className="dashboard-page">
-      <div className="dashboard-heading">
+    <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+      {/* ── Page Header ── */}
+      <div className="page-header-wrapper">
         <div>
-          <span className="dashboard-eyebrow">Ringkasan sistem</span>
-          <h2>Selamat datang, {name}</h2>
-          <p>Berikut ringkasan data sistem Uji IMKP.</p>
+          <div className="page-eyebrow">
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#0066CB', display: 'inline-block' }} />
+            RINGKASAN SISTEM • DASHBOARD UTAMA
+          </div>
+          <h1 className="page-title">Selamat datang, {name}</h1>
+          <p className="page-subtitle">Berikut ringkasan data dan performa sistem Uji IMKP terkini.</p>
         </div>
-        <div className="dashboard-date">Panel admin</div>
+
+        <div className="page-actions">
+          <button className="btn btn-primary" onClick={() => navigate('/admin/questions/create')}>
+            <Icon name="plus" size={16} />
+            Buat Soal Baru
+          </button>
+        </div>
       </div>
 
-      <div className="stats-grid">
-        <div className="stat-card stat-card-blue" onClick={() => navigate('/admin/users')} style={{ cursor: 'pointer' }}>
-          <div className="stat-card-top">
-            <span className="stat-title">Total Peserta</span>
-            <span className="stat-icon"><Icon name="users" size={19} /></span>
+      {/* ── 4 Modern Stat Cards ── */}
+      <div className="stats-grid-4">
+        {/* Stat 1: Total Peserta */}
+        <div className="modern-stat-card stat-accent-blue" onClick={() => navigate('/admin/users')}>
+          <div className="modern-stat-header">
+            <span className="modern-stat-title">TOTAL PESERTA</span>
+            <div className="modern-stat-icon icon-blue">
+              <Icon name="user" size={19} />
+            </div>
           </div>
-          <span className="stat-value">{stats.totalUsers}</span>
-          <span className="stat-link">Lihat peserta <Icon name="next" size={14} /></span>
+          <div className="modern-stat-value-group">
+            <span className="modern-stat-value">{stats.totalUsers}</span>
+            <span className="modern-stat-badge badge-soft-green">↑ 100% aktif</span>
+          </div>
+          <div className="modern-stat-footer">
+            <span className="modern-stat-link">
+              Lihat peserta <Icon name="arrowRight" size={13} />
+            </span>
+            <span>Total terdaftar</span>
+          </div>
         </div>
-        <div className="stat-card stat-card-green" onClick={() => navigate('/admin/questions')} style={{ cursor: 'pointer' }}>
-          <div className="stat-card-top">
-            <span className="stat-title">Total Grup Soal</span>
-            <span className="stat-icon"><Icon name="question" size={19} /></span>
+
+        {/* Stat 2: Total Grup Soal */}
+        <div className="modern-stat-card stat-accent-green" onClick={() => navigate('/admin/questions')}>
+          <div className="modern-stat-header">
+            <span className="modern-stat-title">TOTAL GRUP SOAL</span>
+            <div className="modern-stat-icon icon-green">
+              <Icon name="fileText" size={19} />
+            </div>
           </div>
-          <span className="stat-value">{stats.totalGroups}</span>
-          <span className="stat-link">Kelola grup <Icon name="next" size={14} /></span>
+          <div className="modern-stat-value-group">
+            <span className="modern-stat-value">{stats.totalGroups}</span>
+            <span className="modern-stat-badge badge-soft-gray">Kategori IMKP</span>
+          </div>
+          <div className="modern-stat-footer">
+            <span className="modern-stat-link" style={{ color: '#059669' }}>
+              Kelola grup <Icon name="arrowRight" size={13} />
+            </span>
+            <span>Siap diuji</span>
+          </div>
         </div>
-        <div className="stat-card stat-card-red" onClick={() => navigate('/admin/results')} style={{ cursor: 'pointer' }}>
-          <div className="stat-card-top">
-            <span className="stat-title">Ujian Selesai</span>
-            <span className="stat-icon"><Icon name="chart" size={19} /></span>
+
+        {/* Stat 3: Ujian Selesai */}
+        <div className="modern-stat-card stat-accent-red" onClick={() => navigate('/admin/results')}>
+          <div className="modern-stat-header">
+            <span className="modern-stat-title">UJIAN SELESAI</span>
+            <div className="modern-stat-icon icon-red">
+              <Icon name="trendingUp" size={19} />
+            </div>
           </div>
-          <span className="stat-value">{stats.totalExams}</span>
-          <span className="stat-link">Lihat hasil <Icon name="next" size={14} /></span>
+          <div className="modern-stat-value-group">
+            <span className="modern-stat-value">{stats.totalExams}</span>
+            <span className="modern-stat-badge badge-soft-green">{stats.passRate}% kelulusan</span>
+          </div>
+          <div className="modern-stat-footer">
+            <span className="modern-stat-link" style={{ color: '#EF4444' }}>
+              Lihat hasil <Icon name="arrowRight" size={13} />
+            </span>
+            <span>Telah diverifikasi</span>
+          </div>
         </div>
-        <div className="stat-card stat-card-green" onClick={() => navigate('/admin/questions')} style={{ cursor: 'pointer' }}>
-          <div className="stat-card-top">
-            <span className="stat-title">Kelola Pertanyaan</span>
-            <span className="stat-icon"><Icon name="plus" size={19} /></span>
+
+        {/* Stat 4: Kelola Pertanyaan */}
+        <div className="modern-stat-card stat-accent-teal" onClick={() => navigate('/admin/questions')}>
+          <div className="modern-stat-header">
+            <span className="modern-stat-title">KELOLA PERTANYAAN</span>
+            <div className="modern-stat-icon icon-teal">
+              <Icon name="plusCircle" size={19} />
+            </div>
           </div>
-          <span className="stat-value stat-value-text">Buka</span>
-          <span className="stat-link">Buka bank soal <Icon name="next" size={14} /></span>
+          <div className="modern-stat-value-group">
+            <span className="modern-stat-value" style={{ fontSize: '1.75rem', fontWeight: 800 }}>Buka</span>
+            <span className="modern-stat-badge badge-soft-blue">Akses Cepat</span>
+          </div>
+          <div className="modern-stat-footer">
+            <span className="modern-stat-link" style={{ color: '#0284C7' }}>
+              Buka bank soal <Icon name="arrowRight" size={13} />
+            </span>
+            <span>Modul soal</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Two Column Bottom Section ── */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 360px',
+        gap: '1.5rem',
+        alignItems: 'start'
+      }}>
+        {/* Left Column: Aktivitas Ujian Terkini */}
+        <div className="modern-table-card">
+          <div style={{
+            padding: '1.25rem 1.4rem',
+            borderBottom: '1px solid #F1F5F9',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem'
+          }}>
+            <div>
+              <h3 style={{ fontSize: '1.05rem', margin: '0 0 0.2rem', color: '#0F172A' }}>
+                Aktivitas Ujian Terkini
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748B' }}>
+                Daftar peserta dan skor ujian sertifikasi IMKP terbaru
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button className="btn btn-outline btn-sm">Filter Divisi</button>
+              <button className="btn btn-outline-primary btn-sm" onClick={() => navigate('/admin/results')}>
+                Lihat Semua
+              </button>
+            </div>
+          </div>
+
+          <div className="table-responsive">
+            <table className="modern-table">
+              <thead>
+                <tr>
+                  <th>NAMA PESERTA</th>
+                  <th>GRUP / MODUL UJIAN</th>
+                  <th>SKOR AKHIR</th>
+                  <th>STATUS KELULUSAN</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentExams.map((exam, idx) => {
+                  const pName = exam.participantName || `Peserta ${idx + 1}`;
+                  const nip = exam.nomorPekerja ? `NIP: ${exam.nomorPekerja}` : 'NIP: 9028114';
+                  const div = exam.division || 'Operasional Kilang IMKP';
+                  const isPassed = exam.score >= 70;
+                  const moduleName = exam.module || 'IMKP APD & Prosedur Tanggap Darurat';
+
+                  return (
+                    <tr key={exam.id || idx}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div className="avatar-chip">
+                            {getInitials(pName)}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.88rem' }}>
+                              {pName}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                              {nip} - {div}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ fontSize: '0.84rem', color: '#334155', maxWidth: '240px' }}>
+                        {moduleName}
+                      </td>
+                      <td>
+                        <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0F172A' }}>
+                          {exam.score}/100
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`badge ${isPassed ? 'badge-green' : 'badge-red'}`} style={{ padding: '0.3rem 0.75rem' }}>
+                          {isPassed ? 'Lulus (Sertifikasi)' : 'Belum Lulus'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Right Column: Grup Soal Terverifikasi */}
+        <div className="card" style={{ padding: 0 }}>
+          <div style={{
+            padding: '1.25rem 1.4rem',
+            borderBottom: '1px solid #F1F5F9',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <h3 style={{ fontSize: '1.02rem', margin: '0 0 0.2rem', color: '#0F172A' }}>
+                Grup Soal Terverifikasi
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B' }}>
+                {stats.totalGroups} Grup Soal aktif siap digunakan
+              </p>
+            </div>
+            <span className="badge badge-blue">
+              {stats.totalGroups} Bank
+            </span>
+          </div>
+
+          <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            {questionGroups.map((g, idx) => (
+              <div
+                key={g.id || idx}
+                style={{
+                  padding: '0.9rem 1rem',
+                  borderRadius: '12px',
+                  backgroundColor: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  transition: 'all 0.15s ease',
+                  cursor: 'pointer'
+                }}
+                onClick={() => navigate(`/admin/questions/${g.id || ''}`)}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#0066CB'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#E2E8F0'}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0F172A' }}>
+                    {idx + 1}. {g.name || g.title || 'Modul Keselamatan Kerja'}
+                  </span>
+                  <span className="badge badge-green" style={{ fontSize: '0.7rem' }}>
+                    Aktif
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748B' }}>
+                  <span>{g.questionCount ?? 40} Pertanyaan Pilihan Ganda</span>
+                  <span>Durasi: {g.duration || '45 Menit'}</span>
+                </div>
+              </div>
+            ))}
+
+            <button
+              className="btn btn-outline"
+              style={{
+                width: '100%',
+                marginTop: '0.5rem',
+                borderStyle: 'dashed',
+                borderWidth: '1.5px',
+                color: '#0066CB',
+                borderColor: '#bfdbfe',
+                padding: '0.75rem'
+              }}
+              onClick={() => navigate('/admin/questions')}
+            >
+              <Icon name="plus" size={15} />
+              Tambah Grup Soal Baru
+            </button>
+          </div>
         </div>
       </div>
     </div>

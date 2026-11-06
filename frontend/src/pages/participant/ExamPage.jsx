@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api, { getImageUrl } from '../../services/api';
 import Icon from '../../components/Icon';
@@ -29,10 +29,12 @@ const ExamPage = () => {
   };
 
   const handleSubmit = async () => {
-    const unanswered = questions.length - Object.keys(answers).length;
-    const confirmMsg = unanswered > 0
-      ? `Anda masih memiliki ${unanswered} soal yang belum dijawab. Yakin ingin submit?`
-      : 'Apakah Anda yakin ingin submit ujian ini?';
+    const answeredCount = Object.keys(answers).length;
+    const unanswered = questions.length - answeredCount;
+    const confirmMsg =
+      unanswered > 0
+        ? `Anda masih memiliki ${unanswered} dari ${questions.length} soal yang belum dijawab. Yakin ingin mengakhiri dan mengirim ujian?`
+        : `Anda telah menjawab seluruh ${questions.length} soal. Yakin ingin submit jawaban?`;
 
     if (!window.confirm(confirmMsg)) return;
 
@@ -41,231 +43,257 @@ const ExamPage = () => {
       const payload = {
         answers: Object.entries(answers).map(([questionId, selectedAnswer]) => ({
           questionId: parseInt(questionId),
-          selectedAnswer
-        }))
+          selectedAnswer,
+        })),
       };
       const response = await api.post(`/exams/${examData.examId}/submit`, payload);
       navigate(`/peserta/result/${examData.examId}`, { state: { result: response.data } });
     } catch (err) {
-      alert(err.response?.data || 'Gagal submit ujian.');
+      alert(err.response?.data || 'Gagal mengirim ujian.');
       setSubmitting(false);
     }
   };
 
+  const answeredCount = Object.keys(answers).length;
+  const progressPercent = Math.round((answeredCount / questions.length) * 100);
+
   return (
-    <div>
+    <div style={{ maxWidth: '960px', margin: '0 auto' }}>
       {/* Zoom Modal Gambar Soal */}
       {zoomedImage && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1200,
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1.5rem',
-          }}
-          onClick={() => setZoomedImage(null)}
-        >
-          <div
-            style={{
-              position: 'relative',
-              backgroundColor: '#fff',
-              borderRadius: '12px',
-              maxWidth: '90vw',
-              maxHeight: '90vh',
-              padding: '1rem',
+        <div className="modal-overlay" onClick={() => setZoomedImage(null)}>
+          <div className="modal-dialog" style={{ maxWidth: '720px' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              padding: '1.25rem 1.5rem',
+              borderBottom: '1px solid #E2E8F0',
               display: 'flex',
-              flexDirection: 'column',
               alignItems: 'center',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              style={{
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '0.75rem',
-              }}
-            >
+              justifyContent: 'space-between'
+            }}>
               <h4 style={{ margin: 0 }}>Gambar Soal #{currentIndex + 1}</h4>
               <button
                 type="button"
-                className="btn"
-                style={{ padding: '0.25rem 0.6rem', backgroundColor: '#e9ecef', color: '#495057' }}
+                className="btn btn-icon btn-outline"
+                style={{ width: '30px', height: '30px' }}
                 onClick={() => setZoomedImage(null)}
               >
-                ✕ Tutup
+                <Icon name="x" size={16} />
               </button>
             </div>
-            <img
-              src={zoomedImage}
-              alt={`Zoom Soal ${currentIndex + 1}`}
-              style={{
-                maxWidth: '100%',
-                maxHeight: '75vh',
-                objectFit: 'contain',
-                borderRadius: '8px',
-              }}
-            />
+            <div style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: '#F8FAFC' }}>
+              <img
+                src={zoomedImage}
+                alt={`Zoom Soal ${currentIndex + 1}`}
+                style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: '8px' }}
+              />
+            </div>
           </div>
         </div>
       )}
 
-      {/* Progress Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h3 style={{ margin: 0 }}>Ujian IMKP</h3>
-        <span style={{ color: 'var(--text-muted)' }}>
-          Soal {currentIndex + 1} dari {questions.length} | Dijawab: {Object.keys(answers).length}/{questions.length}
-        </span>
+      {/* ── Top Exam Status Header ── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '1rem',
+        flexWrap: 'wrap',
+        gap: '0.75rem'
+      }}>
+        <div>
+          <span className="page-eyebrow">LEMBAR UJIAN DIGITAL</span>
+          <h2 style={{ fontSize: '1.35rem', margin: '0.2rem 0 0', color: '#0F172A' }}>
+            Soal No. {currentIndex + 1} <span style={{ color: '#64748B', fontSize: '0.95rem', fontWeight: 500 }}>dari {questions.length}</span>
+          </h2>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+              Terjawab
+            </span>
+            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0066CB' }}>
+              {answeredCount} / {questions.length}
+            </div>
+          </div>
+          <span className="badge badge-green" style={{ padding: '0.35rem 0.75rem' }}>
+            {progressPercent}% Selesai
+          </span>
+        </div>
       </div>
 
-      <div style={{ height: '6px', backgroundColor: '#e9ecef', borderRadius: '3px', marginBottom: '1.5rem' }}>
+      {/* Progress Bar */}
+      <div style={{ height: '6px', backgroundColor: '#E2E8F0', borderRadius: '9999px', marginBottom: '1.75rem', overflow: 'hidden' }}>
         <div style={{
           height: '100%',
-          width: `${((currentIndex + 1) / questions.length) * 100}%`,
-          backgroundColor: 'var(--primary-color)',
-          borderRadius: '3px',
+          width: `${progressPercent}%`,
+          backgroundColor: '#0066CB',
+          borderRadius: '9999px',
           transition: 'width 0.3s ease'
         }} />
       </div>
 
-      {/* Question Card */}
-      <div className="card">
-        <div className="card-body" style={{ padding: '2rem' }}>
-          <h4 style={{ marginBottom: currentQuestion.imageUrl ? '1rem' : '1.5rem', lineHeight: '1.6' }}>
-            <span style={{ color: 'var(--primary-color)', marginRight: '8px' }}>#{currentIndex + 1}</span>
-            {currentQuestion.questionText}
-          </h4>
+      {/* ── Question Card ── */}
+      <div className="card" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#0F172A', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+          {currentQuestion.questionText}
+        </h3>
 
-          {/* Gambar Soal (Jika Ada) */}
-          {currentQuestion.imageUrl && (
-            <div
+        {/* Gambar Soal (Jika Ada) */}
+        {currentQuestion.imageUrl && (
+          <div style={{
+            marginBottom: '1.5rem',
+            textAlign: 'center',
+            backgroundColor: '#F8FAFC',
+            padding: '1rem',
+            borderRadius: '12px',
+            border: '1px solid #E2E8F0'
+          }}>
+            <img
+              src={getImageUrl(currentQuestion.imageUrl)}
+              alt={`Gambar Soal ${currentIndex + 1}`}
               style={{
-                marginBottom: '1.5rem',
-                textAlign: 'center',
-                backgroundColor: '#f8f9fa',
-                padding: '0.75rem',
+                maxWidth: '100%',
+                maxHeight: '320px',
                 borderRadius: '8px',
-                border: '1px solid #e9ecef',
+                objectFit: 'contain',
+                cursor: 'zoom-in',
+                display: 'inline-block'
               }}
-            >
-              <img
-                src={getImageUrl(currentQuestion.imageUrl)}
-                alt={`Gambar Soal ${currentIndex + 1}`}
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '340px',
-                  borderRadius: '6px',
-                  objectFit: 'contain',
-                  cursor: 'zoom-in',
-                  display: 'inline-block',
-                }}
+              onClick={() => setZoomedImage(getImageUrl(currentQuestion.imageUrl))}
+              title="Klik untuk memperbesar gambar"
+            />
+            <div style={{ marginTop: '0.5rem' }}>
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
                 onClick={() => setZoomedImage(getImageUrl(currentQuestion.imageUrl))}
-                title="Klik untuk memperbesar gambar"
-              />
-              <div style={{ marginTop: '0.35rem' }}>
-                <small
-                  style={{
-                    color: 'var(--primary-color)',
-                    cursor: 'pointer',
-                    fontWeight: 500,
-                  }}
-                  onClick={() => setZoomedImage(getImageUrl(currentQuestion.imageUrl))}
-                >
-                  🔍 Klik gambar untuk memperbesar
-                </small>
-              </div>
+              >
+                <Icon name="search" size={13} /> Perbesar Gambar
+              </button>
             </div>
-          )}
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {['A', 'B', 'C', 'D'].map((opt) => {
-              const optionKey = `option${opt}`;
-              const isSelected = answers[currentQuestion.id] === opt;
-              return (
-                <div key={opt}
-                  onClick={() => handleAnswer(currentQuestion.id, opt)}
-                  style={{
-                    padding: '1rem 1.25rem',
-                    border: isSelected ? '2px solid var(--primary-color)' : '2px solid #e9ecef',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    backgroundColor: isSelected ? 'rgba(67, 97, 238, 0.08)' : '#fff',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px'
-                  }}
-                >
-                  <span style={{
-                    width: '32px', height: '32px',
-                    borderRadius: '50%',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    backgroundColor: isSelected ? 'var(--primary-color)' : '#e9ecef',
-                    color: isSelected ? '#fff' : '#495057',
-                    fontWeight: 600, fontSize: '0.9rem',
-                    flexShrink: 0
-                  }}>
-                    {opt}
-                  </span>
-                  <span>{currentQuestion[optionKey]}</span>
-                </div>
-              );
-            })}
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Navigation */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.5rem' }}>
-        <button className="btn" style={{ backgroundColor: '#e9ecef', color: '#495057' }}
-          disabled={currentIndex === 0}
-          onClick={() => setCurrentIndex(currentIndex - 1)}>
-          <Icon name="back" size={16} /> Sebelumnya
-        </button>
-
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {currentIndex < questions.length - 1 ? (
-            <button className="btn btn-primary" onClick={() => setCurrentIndex(currentIndex + 1)}>
-              Selanjutnya <Icon name="next" size={16} />
-            </button>
-          ) : (
-            <button className="btn" style={{ backgroundColor: 'var(--success-color)', color: '#fff' }}
-              onClick={handleSubmit} disabled={submitting}>
-              {submitting ? 'Mengirim...' : 'Submit Ujian'}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Question Navigator */}
-      <div className="card" style={{ marginTop: '1.5rem' }}>
-        <div className="card-header"><h4 style={{ margin: 0 }}>Navigasi Soal</h4></div>
-        <div className="card-body">
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {questions.map((q, idx) => (
-              <button key={q.id}
-                onClick={() => setCurrentIndex(idx)}
+        {/* Pilihan Jawaban A-D */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          {['A', 'B', 'C', 'D'].map((opt) => {
+            const optionKey = `option${opt}`;
+            const isSelected = answers[currentQuestion.id] === opt;
+            return (
+              <div
+                key={opt}
+                onClick={() => handleAnswer(currentQuestion.id, opt)}
                 style={{
-                  width: '40px', height: '40px',
-                  border: idx === currentIndex ? '2px solid var(--primary-color)' : '1px solid #ddd',
-                  borderRadius: '6px',
+                  padding: '1rem 1.25rem',
+                  border: isSelected ? '2px solid #0066CB' : '1.5px solid #E2E8F0',
+                  borderRadius: '12px',
                   cursor: 'pointer',
-                  backgroundColor: answers[q.id] ? 'var(--primary-color)' : '#fff',
-                  color: answers[q.id] ? '#fff' : '#333',
-                  fontWeight: idx === currentIndex ? 700 : 400,
-                  fontSize: '0.85rem'
+                  backgroundColor: isSelected ? '#EFF6FF' : '#FFFFFF',
+                  transition: 'all 0.15s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  boxShadow: isSelected ? '0 4px 12px rgba(0, 102, 203, 0.12)' : 'var(--shadow-xs)'
                 }}
               >
-                {idx + 1}
-              </button>
-            ))}
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: isSelected ? '#0066CB' : '#F1F5F9',
+                  color: isSelected ? '#FFFFFF' : '#475569',
+                  fontWeight: 800,
+                  fontSize: '0.9rem',
+                  flexShrink: 0
+                }}>
+                  {opt}
+                </div>
+                <span style={{
+                  fontSize: '0.92rem',
+                  color: isSelected ? '#0066CB' : '#334155',
+                  fontWeight: isSelected ? 600 : 400
+                }}>
+                  {currentQuestion[optionKey]}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Navigation Bottom Bar ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <button
+          className="btn btn-outline"
+          disabled={currentIndex === 0}
+          onClick={() => setCurrentIndex(currentIndex - 1)}
+        >
+          <Icon name="arrowLeft" size={16} /> Sebelumnya
+        </button>
+
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          {currentIndex < questions.length - 1 ? (
+            <button className="btn btn-primary" onClick={() => setCurrentIndex(currentIndex + 1)}>
+              Selanjutnya <Icon name="arrowRight" size={16} />
+            </button>
+          ) : (
+            <button
+              className="btn"
+              style={{ backgroundColor: '#10B981', color: '#ffffff', fontWeight: 700 }}
+              onClick={handleSubmit}
+              disabled={submitting}
+            >
+              <Icon name="check" size={16} />
+              {submitting ? 'Mengirim Lembar Jawaban...' : 'Submit Ujian Sekarang'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Question Grid Navigator ── */}
+      <div className="card" style={{ padding: 0 }}>
+        <div style={{
+          padding: '1rem 1.25rem',
+          borderBottom: '1px solid #F1F5F9',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <h4 style={{ margin: 0, fontSize: '0.92rem', color: '#0F172A' }}>Navigasi Nomor Soal</h4>
+          <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+            Warna biru menandakan soal telah dijawab
+          </span>
+        </div>
+        <div style={{ padding: '1.25rem' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            {questions.map((q, idx) => {
+              const isCurrent = idx === currentIndex;
+              const hasAnswer = Boolean(answers[q.id]);
+              return (
+                <button
+                  key={q.id}
+                  onClick={() => setCurrentIndex(idx)}
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '8px',
+                    border: isCurrent ? '2px solid #0066CB' : '1px solid #E2E8F0',
+                    cursor: 'pointer',
+                    backgroundColor: hasAnswer ? '#0066CB' : '#FFFFFF',
+                    color: hasAnswer ? '#FFFFFF' : '#334155',
+                    fontWeight: isCurrent ? 800 : (hasAnswer ? 700 : 500),
+                    fontSize: '0.85rem',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {idx + 1}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
